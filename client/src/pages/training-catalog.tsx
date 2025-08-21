@@ -113,11 +113,28 @@ export default function TrainingCatalog() {
   });
 
   const handleCreateTraining = () => {
+    if (!newTraining.title || !newTraining.type || !newTraining.category || !newTraining.duration) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields (Title, Type, Category, Duration)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const trainingData = {
-      ...newTraining,
-      duration: parseInt(newTraining.duration),
+      title: newTraining.title.trim(),
+      description: newTraining.description.trim() || null,
+      type: newTraining.type,
+      category: newTraining.category,
+      duration: parseInt(newTraining.duration), // This will map to duration_hours in the schema
       validityPeriod: newTraining.validityPeriod ? parseInt(newTraining.validityPeriod) : null,
+      complianceStandard: newTraining.complianceStandard.trim() || null,
+      prerequisites: newTraining.prerequisites.trim() || null,
+      isRequired: newTraining.isRequired,
     };
+
+    console.log("Creating training with data:", trainingData);
     createTrainingMutation.mutate(trainingData);
   };
 

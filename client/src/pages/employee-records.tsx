@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Filter, Download, Users, Award, Calendar, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Filter, Download, Users, Award, Calendar, FileText, X, BookOpen } from "lucide-react";
 
 export default function EmployeeRecords() {
   const { toast } = useToast();
@@ -46,10 +47,18 @@ export default function EmployeeRecords() {
     enabled: user?.role === 'hr_admin',
   });
 
-  const { data: trainingEnrollments = [] } = useQuery({
+  const { data: trainingEnrollments = [] } = useQuery<any[]>({
     queryKey: ["/api/training-enrollments"],
     retry: false,
   });
+
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  const handleViewDetails = (employee: any) => {
+    setSelectedEmployee(employee);
+    setIsDetailsModalOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -67,8 +76,10 @@ export default function EmployeeRecords() {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  const uniqueDepartments = [...new Set(employeeCompliance.map((emp: any) => emp.department))];
-  const uniqueStatuses = [...new Set(employeeCompliance.map((emp: any) => emp.complianceStatus))];
+  const departmentSet = new Set(employeeCompliance.map((emp: any) => emp.department));
+  const uniqueDepartments = Array.from(departmentSet);
+  const statusSet = new Set(employeeCompliance.map((emp: any) => emp.complianceStatus));
+  const uniqueStatuses = Array.from(statusSet);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -299,6 +310,7 @@ export default function EmployeeRecords() {
                                 variant="ghost" 
                                 size="sm" 
                                 className="text-manufacturing-blue hover:text-blue-700 mr-3"
+                                onClick={() => handleViewDetails(employee)}
                                 data-testid={`button-view-employee-${index}`}
                               >
                                 View Details
@@ -331,11 +343,149 @@ export default function EmployeeRecords() {
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-gray-500" data-testid="text-training-history-placeholder">
-                Select an employee to view detailed training history
+                Click "View Details" on any employee to see their training history
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Employee Details Modal */}
+        <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-screen overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <span>Employee Training Details</span>
+                {selectedEmployee && (
+                  <span className="text-sm font-normal text-gray-500">
+                    - {selectedEmployee.employeeName}
+                  </span>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedEmployee && (
+              <div className="space-y-6">
+                {/* Employee Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-medium text-gray-600">Employee Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Name:</span>
+                        <span className="text-sm font-medium">{selectedEmployee.employeeName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Employee ID:</span>
+                        <span className="text-sm font-medium">{selectedEmployee.employeeId}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Department:</span>
+                        <span className="text-sm font-medium">{selectedEmployee.department || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Status:</span>
+                        <Badge className={getStatusColor(selectedEmployee.complianceStatus)}>
+                          {selectedEmployee.complianceStatus}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-medium text-gray-600">Training Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Last Training:</span>
+                        <span className="text-sm font-medium">{selectedEmployee.lastTraining || 'No training record'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Next Due:</span>
+                        <span className="text-sm font-medium">{selectedEmployee.nextDue || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Total Trainings:</span>
+                        <span className="text-sm font-medium">
+                          {trainingEnrollments.filter((enrollment: any) => enrollment.employeeId === selectedEmployee.employeeId).length}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Training History */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium text-gray-600">Training History</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {trainingEnrollments
+                        .filter((enrollment: any) => enrollment.employeeId === selectedEmployee.employeeId)
+                        .length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          No training records found for this employee
+                        </div>
+                      ) : (
+                        trainingEnrollments
+                          .filter((enrollment: any) => enrollment.employeeId === selectedEmployee.employeeId)
+                          .map((enrollment: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-manufacturing-blue rounded-full flex items-center justify-center">
+                                  <BookOpen className="h-4 w-4 text-white" />
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-gray-900">
+                                    Training Session {enrollment.sessionId || 'N/A'}
+                                  </h4>
+                                  <p className="text-xs text-gray-500">
+                                    Status: {enrollment.status} 
+                                    {enrollment.completionDate && ` • Completed: ${new Date(enrollment.completionDate).toLocaleDateString()}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                {enrollment.score && (
+                                  <span className="text-sm font-medium text-gray-900">
+                                    Score: {enrollment.score}%
+                                  </span>
+                                )}
+                                <Badge 
+                                  className={
+                                    enrollment.status === 'completed' 
+                                      ? 'bg-compliance-green text-white ml-2' 
+                                      : enrollment.status === 'enrolled'
+                                      ? 'bg-manufacturing-blue text-white ml-2'
+                                      : 'bg-gray-500 text-white ml-2'
+                                  }
+                                >
+                                  {enrollment.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDetailsModalOpen(false)}
+                    data-testid="button-close-details"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
