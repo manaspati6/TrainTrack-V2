@@ -42,7 +42,7 @@ export default function TrainingCatalog() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/login";
       }, 500);
       return;
     }
@@ -51,19 +51,6 @@ export default function TrainingCatalog() {
   const { data: trainingCatalog = [], isLoading: isLoadingCatalog } = useQuery({
     queryKey: ["/api/training-catalog"],
     retry: false,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
   const createTrainingMutation = useMutation({
@@ -118,7 +105,7 @@ export default function TrainingCatalog() {
     );
   }
 
-  const filteredTraining = trainingCatalog.filter((training: any) => {
+  const filteredTraining = (trainingCatalog as any[]).filter((training: any) => {
     const matchesSearch = training.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          training.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !filterCategory || training.category === filterCategory;

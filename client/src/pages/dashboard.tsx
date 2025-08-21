@@ -23,31 +23,18 @@ export default function Dashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/login";
       }, 500);
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: employeeCompliance, isLoading: isLoadingCompliance } = useQuery({
+  const { data: employeeCompliance = [], isLoading: isLoadingCompliance } = useQuery<any[]>({
     queryKey: ["/api/dashboard/employee-compliance"],
     retry: false,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
-  const { data: trainingSessions } = useQuery({
+  const { data: trainingSessions = [] } = useQuery<any[]>({
     queryKey: ["/api/training-sessions"],
     retry: false,
   });
@@ -60,14 +47,14 @@ export default function Dashboard() {
     );
   }
 
-  const recentActivities = trainingSessions?.slice(0, 3).map((session: any) => ({
+  const recentActivities = trainingSessions.slice(0, 3).map((session: any) => ({
     id: session.id,
     title: session.title,
     type: session.status === 'completed' ? 'completed' : 'scheduled',
     details: `${session.status === 'completed' ? 'Completed by' : 'Scheduled for'} participants`,
     date: new Date(session.sessionDate).toLocaleDateString(),
     time: new Date(session.sessionDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  })) || [];
+  }));
 
   const complianceAlerts = [
     {
@@ -155,7 +142,7 @@ export default function Dashboard() {
                         No recent training activities
                       </div>
                     ) : (
-                      recentActivities.map((activity) => (
+                      recentActivities.map((activity: any) => (
                         <div key={activity.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg" data-testid={`activity-${activity.id}`}>
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                             activity.type === 'completed' 
@@ -336,14 +323,14 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {employeeCompliance?.length === 0 ? (
+                      {employeeCompliance.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="px-6 py-8 text-center text-gray-500" data-testid="text-no-compliance-data">
                             No employee compliance data available
                           </td>
                         </tr>
                       ) : (
-                        employeeCompliance?.slice(0, 10).map((employee: any, index: number) => (
+                        employeeCompliance.slice(0, 10).map((employee: any, index: number) => (
                           <tr key={employee.employeeId} className="hover:bg-gray-50" data-testid={`employee-row-${index}`}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
