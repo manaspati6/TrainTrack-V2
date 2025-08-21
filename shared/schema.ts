@@ -70,7 +70,7 @@ export const trainingSessions = pgTable("training_sessions", {
 export const trainingEnrollments = pgTable("training_enrollments", {
   id: serial("id").primaryKey(),
   sessionId: integer("session_id").references(() => trainingSessions.id),
-  employeeId: integer("employee_id").references(() => users.id),
+  employeeId: varchar("employee_id").references(() => users.id),
   status: varchar("status").notNull().default("enrolled"), // enrolled, attended, completed, absent
   completionDate: timestamp("completion_date"),
   score: integer("score"), // if applicable
@@ -85,7 +85,7 @@ export const trainingFeedback = pgTable("training_feedback", {
   id: serial("id").primaryKey(),
   enrollmentId: integer("enrollment_id").references(() => trainingEnrollments.id),
   sessionId: integer("session_id").references(() => trainingSessions.id),
-  employeeId: integer("employee_id").references(() => users.id),
+  employeeId: varchar("employee_id").references(() => users.id),
   overallRating: integer("overall_rating").notNull(), // 1-5
   contentRating: integer("content_rating").notNull(), // 1-5
   trainerRating: integer("trainer_rating").notNull(), // 1-5
@@ -99,8 +99,8 @@ export const trainingFeedback = pgTable("training_feedback", {
 export const effectivenessEvaluations = pgTable("effectiveness_evaluations", {
   id: serial("id").primaryKey(),
   enrollmentId: integer("enrollment_id").references(() => trainingEnrollments.id),
-  employeeId: integer("employee_id").references(() => users.id),
-  managerId: integer("manager_id").references(() => users.id),
+  employeeId: varchar("employee_id").references(() => users.id),
+  managerId: varchar("manager_id").references(() => users.id),
   evaluationDate: timestamp("evaluation_date").notNull(),
   knowledgeApplication: integer("knowledge_application"), // 1-5
   behaviorChange: integer("behavior_change"), // 1-5
@@ -125,7 +125,7 @@ export const evidenceAttachments = pgTable("evidence_attachments", {
   fileType: varchar("file_type").notNull(),
   filePath: varchar("file_path").notNull(),
   description: text("description"),
-  uploadedBy: integer("uploaded_by").references(() => users.id),
+  uploadedBy: varchar("uploaded_by").references(() => users.id),
   uploadedAt: timestamp("uploaded_at").defaultNow(),
 });
 
@@ -136,7 +136,7 @@ export const auditLogs = pgTable("audit_logs", {
   entityId: integer("entity_id").notNull(),
   action: varchar("action").notNull(), // create, update, delete
   changes: jsonb("changes"), // JSON of what changed
-  performedBy: integer("performed_by").references(() => users.id),
+  performedBy: varchar("performed_by").references(() => users.id),
   performedAt: timestamp("performed_at").defaultNow().notNull(),
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
