@@ -55,7 +55,14 @@ export default function TrainingCatalog() {
 
   const createTrainingMutation = useMutation({
     mutationFn: async (trainingData: any) => {
+      console.log("Sending training data:", trainingData);
       const response = await apiRequest("POST", "/api/training-catalog", trainingData);
+      console.log("Response status:", response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
       return response.json();
     },
     onSuccess: () => {

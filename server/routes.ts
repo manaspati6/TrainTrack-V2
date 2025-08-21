@@ -97,19 +97,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/training-catalog', isAuthenticated, async (req: any, res) => {
     try {
+      console.log("POST /api/training-catalog - User:", req.user?.id);
+      console.log("POST /api/training-catalog - Body:", req.body);
+      
       const validatedData = insertTrainingCatalogSchema.parse({
         ...req.body,
         createdBy: req.user.id
       });
       
+      console.log("POST /api/training-catalog - Validated data:", validatedData);
+      
       const newCatalog = await storage.createTrainingCatalog(validatedData);
+      
+      console.log("POST /api/training-catalog - Created:", newCatalog);
       
       // TODO: Add audit log when needed
       
       res.status(201).json(newCatalog);
     } catch (error) {
       console.error("Error creating training catalog:", error);
-      res.status(400).json({ message: "Failed to create training catalog" });
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: "Failed to create training catalog" });
+      }
     }
   });
 

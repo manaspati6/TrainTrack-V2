@@ -7,13 +7,19 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   // In a real app, you'd use proper session management
   const userId = req.headers.authorization;
   
+  console.log("Auth check - userId from header:", userId);
+  console.log("Auth check - all headers:", req.headers);
+  
   if (!userId) {
+    console.log("Auth failed - no userId in header");
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
     const user = await storage.getUser(userId);
+    console.log("Auth check - user found:", !!user);
     if (!user) {
+      console.log("Auth failed - user not found");
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -21,8 +27,10 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       ...user,
       claims: { sub: user.id } // Add claims.sub for compatibility with routes
     };
+    console.log("Auth success - user:", user.id);
     next();
   } catch (error) {
+    console.error("Auth error:", error);
     return res.status(401).json({ message: "Unauthorized" });
   }
 };
