@@ -29,28 +29,15 @@ export default function EmployeeRecords() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/login";
       }, 500);
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: employeeCompliance = [], isLoading: isLoadingCompliance } = useQuery({
+  const { data: employeeCompliance = [], isLoading: isLoadingCompliance } = useQuery<any[]>({
     queryKey: ["/api/dashboard/employee-compliance"],
     retry: false,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
   const { data: allEmployees = [] } = useQuery({
@@ -75,8 +62,8 @@ export default function EmployeeRecords() {
   const filteredEmployees = employeeCompliance.filter((employee: any) => {
     const matchesSearch = employee.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = !filterDepartment || employee.department === filterDepartment;
-    const matchesStatus = !filterStatus || employee.complianceStatus === filterStatus;
+    const matchesDepartment = !filterDepartment || filterDepartment === "all" || employee.department === filterDepartment;
+    const matchesStatus = !filterStatus || filterStatus === "all" || employee.complianceStatus === filterStatus;
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
@@ -131,7 +118,7 @@ export default function EmployeeRecords() {
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Departments</SelectItem>
+                    <SelectItem value="all">All Departments</SelectItem>
                     {uniqueDepartments.map((dept: string) => (
                       <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                     ))}
@@ -143,7 +130,7 @@ export default function EmployeeRecords() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     {uniqueStatuses.map((status: string) => (
                       <SelectItem key={status} value={status}>{status}</SelectItem>
                     ))}

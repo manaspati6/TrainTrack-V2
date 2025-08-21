@@ -46,7 +46,7 @@ export default function ComplianceReports() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/login";
       }, 500);
       return;
     }
@@ -55,32 +55,19 @@ export default function ComplianceReports() {
   const { data: complianceMetrics, isLoading: isLoadingMetrics } = useQuery({
     queryKey: ["/api/dashboard/metrics"],
     retry: false,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
-  const { data: employeeCompliance = [] } = useQuery({
+  const { data: employeeCompliance = [] } = useQuery<any[]>({
     queryKey: ["/api/dashboard/employee-compliance"],
     retry: false,
   });
 
-  const { data: trainingSessions = [] } = useQuery({
+  const { data: trainingSessions = [] } = useQuery<any[]>({
     queryKey: ["/api/training-sessions"],
     retry: false,
   });
 
-  const { data: auditLogs = [] } = useQuery({
+  const { data: auditLogs = [] } = useQuery<any[]>({
     queryKey: ["/api/audit-logs"],
     retry: false,
     enabled: user?.role === 'hr_admin',
@@ -265,7 +252,7 @@ export default function ComplianceReports() {
                       <SelectValue placeholder="All Departments" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Departments</SelectItem>
+                      <SelectItem value="all">All Departments</SelectItem>
                       <SelectItem value="production">Production</SelectItem>
                       <SelectItem value="quality">Quality Control</SelectItem>
                       <SelectItem value="maintenance">Maintenance</SelectItem>
@@ -281,7 +268,7 @@ export default function ComplianceReports() {
                       <SelectValue placeholder="All Standards" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Standards</SelectItem>
+                      <SelectItem value="all">All Standards</SelectItem>
                       <SelectItem value="iso45001">ISO 45001</SelectItem>
                       <SelectItem value="osha">OSHA</SelectItem>
                       <SelectItem value="iso9001">ISO 9001</SelectItem>
@@ -295,8 +282,8 @@ export default function ComplianceReports() {
                 <Button 
                   variant="outline" 
                   onClick={() => {
-                    setFilterDepartment("");
-                    setFilterStandard("");
+                    setFilterDepartment("all");
+                    setFilterStandard("all");
                     setDateRange({
                       from: new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1),
                       to: new Date(),

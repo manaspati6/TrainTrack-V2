@@ -108,7 +108,7 @@ export default function TrainingCatalog() {
   const filteredTraining = (trainingCatalog as any[]).filter((training: any) => {
     const matchesSearch = training.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          training.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || training.category === filterCategory;
+    const matchesCategory = !filterCategory || filterCategory === "all" || training.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -156,7 +156,7 @@ export default function TrainingCatalog() {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="safety">Safety</SelectItem>
                     <SelectItem value="quality">Quality</SelectItem>
                     <SelectItem value="compliance">Compliance</SelectItem>

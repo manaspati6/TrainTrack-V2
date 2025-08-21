@@ -276,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Effectiveness evaluations routes
   app.get('/api/effectiveness-evaluations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       let evaluations;
@@ -379,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Users management routes
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const currentUser = await storage.getUser(userId);
       
       if (currentUser?.role !== 'hr_admin') {
@@ -408,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Audit logs routes
   app.get('/api/audit-logs', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const currentUser = await storage.getUser(userId);
       
       if (currentUser?.role !== 'hr_admin') {
