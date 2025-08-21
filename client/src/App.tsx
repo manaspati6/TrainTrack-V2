@@ -9,7 +9,9 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import TrainingCatalog from "@/pages/training-catalog";
+import TrainingCalendar from "@/pages/training-calendar";
 import EmployeeRecords from "@/pages/employee-records";
+import EmployeeManagement from "@/pages/employee-management";
 import ComplianceReports from "@/pages/compliance-reports";
 
 function Router() {
@@ -24,7 +26,9 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/training-catalog" component={TrainingCatalog} />
+          <Route path="/training-calendar" component={TrainingCalendar} />
           <Route path="/employee-records" component={EmployeeRecords} />
+          <Route path="/employee-management" component={EmployeeManagement} />
           <Route path="/compliance-reports" component={ComplianceReports} />
         </>
       )}

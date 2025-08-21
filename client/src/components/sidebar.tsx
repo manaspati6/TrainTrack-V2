@@ -8,7 +8,8 @@ import {
   FileText, 
   LogOut, 
   Shield,
-  Calendar
+  Calendar,
+  UserPlus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,7 +30,9 @@ export default function Sidebar() {
   const menuItems = [
     { path: "/", icon: Home, label: "Dashboard", roles: ["employee", "manager", "hr_admin"] },
     { path: "/training-catalog", icon: BookOpen, label: "Training Catalog", roles: ["employee", "manager", "hr_admin"] },
+    { path: "/training-calendar", icon: Calendar, label: "Training Calendar", roles: ["employee", "manager", "hr_admin"] },
     { path: "/employee-records", icon: Users, label: "Employee Records", roles: ["manager", "hr_admin"] },
+    { path: "/employee-management", icon: UserPlus, label: "Employee Management", roles: ["hr_admin"] },
     { path: "/compliance-reports", icon: FileText, label: "Compliance Reports", roles: ["manager", "hr_admin"] },
   ];
 

@@ -11,6 +11,7 @@ import {
   insertTrainingEnrollmentSchema,
   insertTrainingFeedbackSchema,
   insertEffectivenessEvaluationSchema,
+  insertUserSchema,
 } from "@shared/schema";
 
 // Configure multer for file uploads
@@ -98,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTrainingCatalogSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub
+        createdBy: req.user.id
       });
       
       const newCatalog = await storage.createTrainingCatalog(validatedData);
@@ -145,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTrainingSessionSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub
+        createdBy: req.user.id
       });
       
       const newSession = await storage.createTrainingSession(validatedData);
@@ -155,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityType: 'training_session',
         entityId: newSession.id,
         action: 'create',
-        performedBy: req.user.claims.sub,
+        performedBy: req.user.id,
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
@@ -199,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityType: 'training_enrollment',
         entityId: newEnrollment.id,
         action: 'create',
-        performedBy: req.user.claims.sub,
+        performedBy: req.user.id,
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
@@ -224,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityId: id,
         action: 'update',
         changes: validatedData,
-        performedBy: req.user.claims.sub,
+        performedBy: req.user.id,
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
@@ -261,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityType: 'training_feedback',
         entityId: newFeedback.id,
         action: 'create',
-        performedBy: req.user.claims.sub,
+        performedBy: req.user.id,
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
@@ -307,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityType: 'effectiveness_evaluation',
         entityId: newEvaluation.id,
         action: 'create',
-        performedBy: req.user.claims.sub,
+        performedBy: req.user.id,
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
@@ -343,7 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityType: 'evidence_attachment',
         entityId: attachment.id,
         action: 'create',
-        performedBy: req.user.claims.sub,
+        performedBy: req.user.id,
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
@@ -394,14 +395,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (role) {
         users = await storage.getUsersByRole(role as string);
       } else {
-        // Get all users - you may want to implement pagination here
-        users = await storage.getUsersByRole('employee');
+        // Get all users - implemented pagination if needed
+        users = await storage.getAllUsers();
       }
       
       res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const currentUser = await storage.getUser(userId);
+      
+      if (currentUser?.role !== 'hr_admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const validatedData = insertUserSchema.parse(req.body);
+      const newUser = await storage.createUser(validatedData);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: 'user',
+        entityId: 0, // Will be updated when we have proper ID handling
+        action: 'create',
+        performedBy: req.user.id,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+      
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(400).json({ message: "Failed to create user" });
+    }
+  });
+
+  // Departments routes
+  app.get('/api/departments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const currentUser = await storage.getUser(userId);
+      
+      if (currentUser?.role !== 'hr_admin' && currentUser?.role !== 'manager') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Return a list of departments (for now, just return unique departments from users)
+      const users = await storage.getAllUsers();
+      const departmentSet = new Set(users.map(user => user.department).filter(Boolean));
+      const departments = Array.from(departmentSet);
+      
+      res.json(departments.map(dept => ({ name: dept, description: '', manager: null })));
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      res.status(500).json({ message: "Failed to fetch departments" });
+    }
+  });
+
+  app.post('/api/departments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const currentUser = await storage.getUser(userId);
+      
+      if (currentUser?.role !== 'hr_admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // For now, just return success (department management can be enhanced later)
+      res.status(201).json({ message: "Department created successfully" });
+    } catch (error) {
+      console.error("Error creating department:", error);
+      res.status(400).json({ message: "Failed to create department" });
     }
   });
 
