@@ -132,29 +132,31 @@ export default function TrainingCatalog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-catalog"] });
       
-      // Add a small delay to ensure smooth modal transition
+      // Reset form immediately (no timeout to avoid button disable issues)
+      setNewTraining({
+        title: "",
+        description: "",
+        type: "",
+        category: "",
+        duration: "",
+        validityPeriod: "",
+        complianceStandard: "",
+        prerequisites: "",
+        isRequired: false,
+        trainerName: "",
+        trainerType: "",
+        cost: "",
+        currency: "USD",
+        providerName: "",
+        providerContact: "",
+        location: "",
+        externalUrl: "",
+      });
+      
+      // Close modal with small delay for smooth transition
       setTimeout(() => {
         setIsCreateModalOpen(false);
-        setNewTraining({
-          title: "",
-          description: "",
-          type: "",
-          category: "",
-          duration: "",
-          validityPeriod: "",
-          complianceStandard: "",
-          prerequisites: "",
-          isRequired: false,
-          trainerName: "",
-          trainerType: "",
-          cost: "",
-          currency: "USD",
-          providerName: "",
-          providerContact: "",
-          location: "",
-          externalUrl: "",
-        });
-      }, 100);
+      }, 50);
       
       toast({
         title: "Success",
@@ -255,25 +257,37 @@ export default function TrainingCatalog() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
+      // Ensure we get the blob with proper MIME type
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      
+      // Create blob with explicit Excel MIME type if needed
+      const excelBlob = new Blob([blob], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      
+      const url = window.URL.createObjectURL(excelBlob);
       const link = document.createElement('a');
       link.href = url;
       link.download = 'training-catalog-template.xlsx';
+      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      
+      // Clean up immediately
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
       
       toast({
         title: "Template Downloaded",
-        description: "Excel template has been downloaded successfully",
+        description: "Excel template has been downloaded successfully. Check your Downloads folder.",
       });
     } catch (error) {
       console.error('Error downloading template:', error);
       toast({
         title: "Download Failed",
-        description: "Failed to download Excel template",
+        description: "Failed to download Excel template: " + (error as Error).message,
         variant: "destructive",
       });
     }
