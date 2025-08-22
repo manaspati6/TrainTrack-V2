@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { BookOpen, Plus, Search, Clock, Users, Award, Filter } from "lucide-react";
+import { BookOpen, Plus, Search, Clock, Users, Award, Filter, Download, Upload, FileSpreadsheet } from "lucide-react";
 
 export default function TrainingCatalog() {
   const { toast } = useToast();
@@ -23,6 +23,7 @@ export default function TrainingCatalog() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [newTraining, setNewTraining] = useState({
     title: "",
     description: "",
@@ -63,6 +64,57 @@ export default function TrainingCatalog() {
   const { data: trainingCatalog = [], isLoading: isLoadingCatalog } = useQuery({
     queryKey: ["/api/training-catalog"],
     retry: false,
+  });
+
+  const bulkImportMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch('/api/training-catalog/bulk-import', {
+        method: 'POST',
+        headers: {
+          'Authorization': localStorage.getItem('authToken') || '',
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-catalog"] });
+      setIsImporting(false);
+      toast({
+        title: "Import Successful",
+        description: data.message + (data.errors ? ` ${data.errors.length} rows had errors.` : ''),
+        variant: data.errors ? "destructive" : "default",
+      });
+      
+      if (data.errors && data.errors.length > 0) {
+        console.log("Import errors:", data.errors);
+        // You can show detailed errors in a modal or download an error report
+      }
+    },
+    onError: (error: Error) => {
+      setIsImporting(false);
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Import Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const createTrainingMutation = useMutation({
@@ -190,6 +242,80 @@ export default function TrainingCatalog() {
     createTrainingMutation.mutate(trainingData);
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch('/api/training-catalog/template', {
+        method: 'GET',
+        headers: {
+          'Authorization': localStorage.getItem('authToken') || '',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'training-catalog-template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Template Downloaded",
+        description: "Excel template has been downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download Excel template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['.xlsx', '.xls'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedTypes.includes(fileExtension)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please select an Excel file (.xlsx or .xls)",
+        variant: "destructive",
+      });
+      event.target.value = ''; // Reset file input
+      return;
+    }
+    
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "File size must be less than 10MB",
+        variant: "destructive",
+      });
+      event.target.value = ''; // Reset file input
+      return;
+    }
+    
+    setIsImporting(true);
+    const formData = new FormData();
+    formData.append('excel', file);
+    
+    bulkImportMutation.mutate(formData);
+    event.target.value = ''; // Reset file input
+  };
+
   const canCreateTraining = user?.role === 'hr_admin' || user?.role === 'manager';
 
   return (
@@ -232,6 +358,41 @@ export default function TrainingCatalog() {
                     <SelectItem value="technical">Technical</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                {canCreateTraining && (
+                  <>
+                    {/* Excel Import/Export Buttons */}
+                    <Button 
+                      variant="outline" 
+                      onClick={handleDownloadTemplate}
+                      className="border-manufacturing-blue text-manufacturing-blue hover:bg-manufacturing-blue hover:text-white"
+                      data-testid="button-download-template"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Template
+                    </Button>
+                    
+                    <div className="relative">
+                      <input
+                        type="file"
+                        id="excel-upload"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileImport}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        data-testid="input-excel-upload"
+                      />
+                      <Button 
+                        variant="outline" 
+                        disabled={isImporting || bulkImportMutation.isPending}
+                        className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                        data-testid="button-import-excel"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {isImporting ? "Importing..." : "Import Excel"}
+                      </Button>
+                    </div>
+                  </>
+                )}
                 
                 {canCreateTraining && (
                   <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>

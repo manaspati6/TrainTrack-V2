@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import xlsx from "xlsx";
 import { storage } from "./storage-simple";
 import { setupAuth, isAuthenticated } from "./auth";
 import {
@@ -501,6 +502,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching audit logs:", error);
       res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+
+  // Training Catalog Excel Import/Export Routes
+  app.get('/api/training-catalog/template', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const currentUser = await storage.getUser(userId);
+      
+      if (currentUser?.role !== 'hr_admin' && currentUser?.role !== 'manager') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Create Excel template
+      const templateData = [
+        {
+          title: 'OSHA Safety Fundamentals',
+          description: 'Basic workplace safety training covering OSHA regulations and safety procedures',
+          type: 'internal',
+          category: 'safety',
+          duration: 4,
+          validityPeriod: 12,
+          complianceStandard: 'OSHA 29 CFR 1926',
+          prerequisites: 'None',
+          isRequired: 'TRUE',
+          trainerName: 'John Smith',
+          trainerType: 'internal',
+          cost: '',
+          currency: 'USD',
+          providerName: '',
+          providerContact: '',
+          location: '',
+          externalUrl: ''
+        },
+        {
+          title: 'External Fire Safety Training',
+          description: 'Comprehensive fire safety and emergency response training',
+          type: 'external',
+          category: 'safety',
+          duration: 6,
+          validityPeriod: 24,
+          complianceStandard: 'NFPA 101',
+          prerequisites: 'Basic Safety Orientation',
+          isRequired: 'FALSE',
+          trainerName: '',
+          trainerType: 'external',
+          cost: 250.00,
+          currency: 'USD',
+          providerName: 'Fire Safety Institute',
+          providerContact: 'contact@firesafety.com',
+          location: 'Chicago, IL',
+          externalUrl: 'https://firesafety.com/training'
+        }
+      ];
+
+      const ws = xlsx.utils.json_to_sheet(templateData);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, 'Training Catalog Template');
+
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 25 }, // title
+        { wch: 50 }, // description
+        { wch: 12 }, // type
+        { wch: 12 }, // category
+        { wch: 10 }, // duration
+        { wch: 15 }, // validityPeriod
+        { wch: 20 }, // complianceStandard
+        { wch: 30 }, // prerequisites
+        { wch: 10 }, // isRequired
+        { wch: 20 }, // trainerName
+        { wch: 15 }, // trainerType
+        { wch: 10 }, // cost
+        { wch: 10 }, // currency
+        { wch: 25 }, // providerName
+        { wch: 25 }, // providerContact
+        { wch: 20 }, // location
+        { wch: 40 }  // externalUrl
+      ];
+
+      const excelBuffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=training-catalog-template.xlsx');
+      res.send(excelBuffer);
+
+    } catch (error) {
+      console.error("Error generating Excel template:", error);
+      res.status(500).json({ message: "Failed to generate Excel template" });
+    }
+  });
+
+  app.post('/api/training-catalog/bulk-import', isAuthenticated, upload.single('excel'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const currentUser = await storage.getUser(userId);
+      
+      if (currentUser?.role !== 'hr_admin' && currentUser?.role !== 'manager') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No Excel file uploaded" });
+      }
+
+      // Read Excel file
+      const workbook = xlsx.readFile(req.file.path);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = xlsx.utils.sheet_to_json(worksheet);
+
+      console.log("Excel data received:", jsonData);
+
+      const results = {
+        success: 0,
+        errors: [] as any[]
+      };
+
+      // Process each row
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i] as any;
+        
+        try {
+          // Validate required fields
+          if (!row.title || !row.type || !row.category || !row.duration) {
+            results.errors.push({
+              row: i + 2, // Excel row number (starting from 2, accounting for header)
+              error: 'Missing required fields: title, type, category, duration'
+            });
+            continue;
+          }
+
+          // Validate external training requirements
+          if (row.type === 'external' && !row.providerName) {
+            results.errors.push({
+              row: i + 2,
+              error: 'Provider name is required for external training'
+            });
+            continue;
+          }
+
+          // Prepare training data
+          const trainingData = {
+            title: row.title?.toString().trim(),
+            description: row.description?.toString().trim() || null,
+            type: row.type?.toString().toLowerCase(),
+            category: row.category?.toString().toLowerCase(),
+            duration: parseInt(row.duration?.toString()) || 0,
+            validityPeriod: row.validityPeriod ? parseInt(row.validityPeriod.toString()) : null,
+            complianceStandard: row.complianceStandard?.toString().trim() || null,
+            prerequisites: row.prerequisites?.toString().trim() || null,
+            isRequired: row.isRequired?.toString().toLowerCase() === 'true',
+            trainerName: row.trainerName?.toString().trim() || null,
+            trainerType: row.trainerType?.toString().toLowerCase() || null,
+            cost: row.cost ? Math.round(parseFloat(row.cost.toString()) * 100) : null,
+            currency: row.currency?.toString() || 'USD',
+            providerName: row.providerName?.toString().trim() || null,
+            providerContact: row.providerContact?.toString().trim() || null,
+            location: row.location?.toString().trim() || null,
+            externalUrl: row.externalUrl?.toString().trim() || null,
+            createdBy: userId
+          };
+
+          // Validate data using schema
+          const validatedData = insertTrainingCatalogSchema.parse(trainingData);
+          
+          // Create training
+          await storage.createTrainingCatalog(validatedData);
+          results.success++;
+
+        } catch (error) {
+          console.error(`Error processing row ${i + 2}:`, error);
+          results.errors.push({
+            row: i + 2,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: 'training_catalog',
+        entityId: 0,
+        action: 'bulk_import',
+        changes: {
+          totalRows: jsonData.length,
+          successCount: results.success,
+          errorCount: results.errors.length
+        },
+        performedBy: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.json({
+        message: `Import completed. ${results.success} trainings created successfully.`,
+        success: results.success,
+        errors: results.errors.length > 0 ? results.errors : undefined
+      });
+
+    } catch (error) {
+      console.error("Error processing bulk import:", error);
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
+      res.status(500).json({ message: "Failed to process bulk import" });
     }
   });
 
