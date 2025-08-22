@@ -431,7 +431,14 @@ export default function TrainingCatalog() {
                           <Button 
                             type="button" 
                             onClick={handleCreateTraining}
-                            disabled={createTrainingMutation.isPending || !newTraining.title || !newTraining.type || !newTraining.category || !newTraining.duration}
+                            disabled={
+                              createTrainingMutation.isPending || 
+                              !newTraining.title || 
+                              !newTraining.type || 
+                              !newTraining.category || 
+                              !newTraining.duration ||
+                              (newTraining.type === 'external' && !newTraining.providerName.trim())
+                            }
                             className="bg-manufacturing-blue hover:bg-blue-700"
                             data-testid="button-create-training"
                           >
