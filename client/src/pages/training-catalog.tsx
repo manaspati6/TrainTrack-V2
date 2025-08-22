@@ -21,6 +21,8 @@ export default function TrainingCatalog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedTraining, setSelectedTraining] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [newTraining, setNewTraining] = useState({
     title: "",
     description: "",
@@ -77,29 +79,34 @@ export default function TrainingCatalog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-catalog"] });
-      setIsCreateModalOpen(false);
-      setNewTraining({
-        title: "",
-        description: "",
-        type: "",
-        category: "",
-        duration: "",
-        validityPeriod: "",
-        complianceStandard: "",
-        prerequisites: "",
-        isRequired: false,
-        trainerName: "",
-        trainerType: "",
-        cost: "",
-        currency: "USD",
-        providerName: "",
-        providerContact: "",
-        location: "",
-        externalUrl: "",
-      });
+      
+      // Add a small delay to ensure smooth modal transition
+      setTimeout(() => {
+        setIsCreateModalOpen(false);
+        setNewTraining({
+          title: "",
+          description: "",
+          type: "",
+          category: "",
+          duration: "",
+          validityPeriod: "",
+          complianceStandard: "",
+          prerequisites: "",
+          isRequired: false,
+          trainerName: "",
+          trainerType: "",
+          cost: "",
+          currency: "USD",
+          providerName: "",
+          providerContact: "",
+          location: "",
+          externalUrl: "",
+        });
+      }, 100);
+      
       toast({
         title: "Success",
-        description: "Training course created successfully",
+        description: "Training course created successfully. Ready to create another!",
       });
     },
     onError: (error: Error) => {
@@ -615,7 +622,16 @@ export default function TrainingCatalog() {
                           Created {new Date(training.createdAt).toLocaleDateString()}
                         </span>
                         <div className="space-x-2">
-                          <Button variant="ghost" size="sm" className="text-manufacturing-blue hover:text-blue-700" data-testid={`button-view-${training.id}`}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-manufacturing-blue hover:text-blue-700" 
+                            data-testid={`button-view-${training.id}`}
+                            onClick={() => {
+                              setSelectedTraining(training);
+                              setIsDetailsModalOpen(true);
+                            }}
+                          >
                             View Details
                           </Button>
                           {canCreateTraining && (
@@ -633,6 +649,150 @@ export default function TrainingCatalog() {
           )}
         </div>
       </main>
+
+      {/* Training Details Modal */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {selectedTraining?.title}
+            </DialogTitle>
+            <div className="flex items-center space-x-2 mt-2">
+              <Badge variant="secondary" className="text-xs">
+                {selectedTraining?.category}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {selectedTraining?.type}
+              </Badge>
+              {selectedTraining?.isRequired && (
+                <Badge variant="destructive" className="text-xs">Required</Badge>
+              )}
+            </div>
+          </DialogHeader>
+          
+          {selectedTraining && (
+            <div className="space-y-6">
+              {/* Description */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
+                <p className="text-gray-600">
+                  {selectedTraining.description || "No description available"}
+                </p>
+              </div>
+
+              {/* Training Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Training Details</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Duration:</span>
+                      <span className="font-medium">{selectedTraining.duration} hours</span>
+                    </div>
+                    {selectedTraining.validityPeriod && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Valid for:</span>
+                        <span className="font-medium">{selectedTraining.validityPeriod} months</span>
+                      </div>
+                    )}
+                    {selectedTraining.complianceStandard && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Standard:</span>
+                        <span className="font-medium">{selectedTraining.complianceStandard}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Trainer Info */}
+                {(selectedTraining.trainerName || selectedTraining.trainerType) && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Trainer Information</h4>
+                    <div className="space-y-2">
+                      {selectedTraining.trainerName && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Trainer:</span>
+                          <span className="font-medium">{selectedTraining.trainerName}</span>
+                        </div>
+                      )}
+                      {selectedTraining.trainerType && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Type:</span>
+                          <span className="font-medium capitalize">{selectedTraining.trainerType}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* External Training Details */}
+              {selectedTraining.type === 'external' && (selectedTraining.providerName || selectedTraining.location || selectedTraining.cost) && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">External Training Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedTraining.providerName && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Provider:</span>
+                        <span className="font-medium">{selectedTraining.providerName}</span>
+                      </div>
+                    )}
+                    {selectedTraining.location && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Location:</span>
+                        <span className="font-medium">{selectedTraining.location}</span>
+                      </div>
+                    )}
+                    {selectedTraining.cost && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Cost:</span>
+                        <span className="font-medium text-green-600">
+                          ${(selectedTraining.cost / 100).toFixed(2)} {selectedTraining.currency || 'USD'}
+                        </span>
+                      </div>
+                    )}
+                    {selectedTraining.providerContact && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Contact:</span>
+                        <span className="font-medium">{selectedTraining.providerContact}</span>
+                      </div>
+                    )}
+                  </div>
+                  {selectedTraining.externalUrl && (
+                    <div className="mt-3">
+                      <span className="text-gray-600">Course URL: </span>
+                      <a 
+                        href={selectedTraining.externalUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {selectedTraining.externalUrl}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Prerequisites */}
+              {selectedTraining.prerequisites && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Prerequisites</h4>
+                  <p className="text-gray-600">{selectedTraining.prerequisites}</p>
+                </div>
+              )}
+
+              {/* Creation Info */}
+              <div className="border-t pt-4 text-sm text-gray-500">
+                Created on {new Date(selectedTraining.createdAt).toLocaleDateString()} 
+                {selectedTraining.updatedAt && selectedTraining.updatedAt !== selectedTraining.createdAt && 
+                  ` • Updated on ${new Date(selectedTraining.updatedAt).toLocaleDateString()}`
+                }
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
