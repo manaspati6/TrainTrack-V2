@@ -50,6 +50,9 @@ export const trainingCatalog = pgTable("training_catalog", {
   providerContact: varchar("provider_contact"), // contact info
   location: varchar("location"), // training location
   externalUrl: varchar("external_url"), // provider website/course link
+  // Trainer information
+  trainerName: varchar("trainer_name"), // trainer name for the training
+  trainerType: varchar("trainer_type"), // internal, external, contractor
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

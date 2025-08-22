@@ -31,6 +31,9 @@ export default function TrainingCatalog() {
     complianceStandard: "",
     prerequisites: "",
     isRequired: false,
+    // Trainer fields
+    trainerName: "",
+    trainerType: "",
     // External training fields
     cost: "",
     currency: "USD",
@@ -85,6 +88,8 @@ export default function TrainingCatalog() {
         complianceStandard: "",
         prerequisites: "",
         isRequired: false,
+        trainerName: "",
+        trainerType: "",
         cost: "",
         currency: "USD",
         providerName: "",
@@ -162,6 +167,9 @@ export default function TrainingCatalog() {
       complianceStandard: newTraining.complianceStandard.trim() || null,
       prerequisites: newTraining.prerequisites.trim() || null,
       isRequired: newTraining.isRequired,
+      // Trainer fields
+      trainerName: newTraining.trainerName.trim() || null,
+      trainerType: newTraining.trainerType || null,
       // External training fields
       cost: newTraining.cost ? Math.round(parseFloat(newTraining.cost) * 100) : null, // Convert to cents
       currency: newTraining.currency || "USD",
@@ -347,6 +355,42 @@ export default function TrainingCatalog() {
                           />
                         </div>
 
+                        {/* Trainer Information */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-medium text-gray-900 mb-4">Trainer Information</h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="trainerName">Trainer Name</Label>
+                              <Input
+                                id="trainerName"
+                                value={newTraining.trainerName}
+                                onChange={(e) => setNewTraining({ ...newTraining, trainerName: e.target.value })}
+                                placeholder="e.g., John Smith or TBD"
+                                data-testid="input-trainer-name"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor="trainerType">Trainer Type</Label>
+                              <Select 
+                                value={newTraining.trainerType} 
+                                onValueChange={(value) => setNewTraining({ ...newTraining, trainerType: value })}
+                              >
+                                <SelectTrigger data-testid="select-trainer-type">
+                                  <SelectValue placeholder="Select trainer type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="internal">Internal Employee</SelectItem>
+                                  <SelectItem value="external">External Trainer</SelectItem>
+                                  <SelectItem value="contractor">Contractor</SelectItem>
+                                  <SelectItem value="vendor">Vendor/Provider</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* External Training Specific Fields */}
                         {newTraining.type === 'external' && (
                           <>
@@ -527,6 +571,16 @@ export default function TrainingCatalog() {
                           <div className="flex items-center text-sm text-gray-500">
                             <Users className="h-4 w-4 mr-2" />
                             <span data-testid={`text-standard-${training.id}`}>{training.complianceStandard}</span>
+                          </div>
+                        )}
+
+                        {/* Trainer information */}
+                        {training.trainerName && (
+                          <div className="flex items-center text-sm text-blue-600 font-medium">
+                            <Users className="h-4 w-4 mr-2" />
+                            <span data-testid={`text-trainer-${training.id}`}>
+                              {training.trainerName} {training.trainerType && `(${training.trainerType})`}
+                            </span>
                           </div>
                         )}
 
