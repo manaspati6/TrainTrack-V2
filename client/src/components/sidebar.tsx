@@ -9,14 +9,18 @@ import {
   LogOut, 
   Shield,
   Calendar,
-  UserPlus
+  UserPlus,
+  Menu,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function Sidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
@@ -41,7 +45,30 @@ export default function Sidebar() {
   );
 
   return (
-    <div className="bg-gray-900 text-white w-64 min-h-screen flex flex-col">
+    <>
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-gray-900 text-white rounded-md"
+        data-testid="button-mobile-menu"
+      >
+        {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
+
+      {/* Overlay for mobile */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        bg-gray-900 text-white w-64 min-h-screen flex flex-col fixed left-0 top-0 z-40 transform transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 lg:relative lg:z-auto
+      `}>
       {/* Header */}
       <div className="p-6 border-b border-gray-700">
         <div className="flex items-center space-x-3">
@@ -98,18 +125,19 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-700">
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
-          className="w-full justify-start text-gray-300 hover:bg-gray-700 hover:text-white h-12"
-          data-testid="button-logout"
-        >
-          <LogOut className="mr-3 h-5 w-5" />
-          Logout
-        </Button>
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-700">
+          <Button
+            onClick={handleLogout}
+            variant="ghost"
+            className="w-full justify-start text-gray-300 hover:bg-gray-700 hover:text-white h-12"
+            data-testid="button-logout"
+          >
+            <LogOut className="mr-3 h-5 w-5" />
+            Logout
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

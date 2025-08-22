@@ -43,6 +43,13 @@ export const trainingCatalog = pgTable("training_catalog", {
   isRequired: boolean("is_required").default(false),
   complianceStandard: varchar("compliance_standard"), // ISO45001, OSHA, etc.
   prerequisites: text("prerequisites"),
+  // External training specific fields
+  cost: integer("cost"), // cost in cents for precise calculation
+  currency: varchar("currency").default("USD"),
+  providerName: varchar("provider_name"), // training provider/institute name
+  providerContact: varchar("provider_contact"), // contact info
+  location: varchar("location"), // training location
+  externalUrl: varchar("external_url"), // provider website/course link
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

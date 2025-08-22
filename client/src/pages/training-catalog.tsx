@@ -31,6 +31,13 @@ export default function TrainingCatalog() {
     complianceStandard: "",
     prerequisites: "",
     isRequired: false,
+    // External training fields
+    cost: "",
+    currency: "USD",
+    providerName: "",
+    providerContact: "",
+    location: "",
+    externalUrl: "",
   });
 
   // Redirect to login if not authenticated
@@ -78,6 +85,12 @@ export default function TrainingCatalog() {
         complianceStandard: "",
         prerequisites: "",
         isRequired: false,
+        cost: "",
+        currency: "USD",
+        providerName: "",
+        providerContact: "",
+        location: "",
+        externalUrl: "",
       });
       toast({
         title: "Success",
@@ -129,16 +142,33 @@ export default function TrainingCatalog() {
       return;
     }
 
+    // Check required fields for external training
+    if (newTraining.type === 'external' && !newTraining.providerName.trim()) {
+      toast({
+        title: "Error",
+        description: "Provider Name is required for external training",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const trainingData = {
       title: newTraining.title.trim(),
       description: newTraining.description.trim() || null,
       type: newTraining.type,
       category: newTraining.category,
-      duration: parseInt(newTraining.duration), // This will map to duration_hours in the schema
+      duration: parseInt(newTraining.duration),
       validityPeriod: newTraining.validityPeriod ? parseInt(newTraining.validityPeriod) : null,
       complianceStandard: newTraining.complianceStandard.trim() || null,
       prerequisites: newTraining.prerequisites.trim() || null,
       isRequired: newTraining.isRequired,
+      // External training fields
+      cost: newTraining.cost ? Math.round(parseFloat(newTraining.cost) * 100) : null, // Convert to cents
+      currency: newTraining.currency || "USD",
+      providerName: newTraining.providerName.trim() || null,
+      providerContact: newTraining.providerContact.trim() || null,
+      location: newTraining.location.trim() || null,
+      externalUrl: newTraining.externalUrl.trim() || null,
     };
 
     console.log("Creating training with data:", trainingData);
@@ -151,7 +181,7 @@ export default function TrainingCatalog() {
     <div className="min-h-screen flex bg-gray-50">
       <Sidebar />
       
-      <main className="flex-1 ml-64">
+      <main className="flex-1 lg:ml-64 transition-all duration-300">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
           <div className="px-6 py-4">
@@ -196,12 +226,12 @@ export default function TrainingCatalog() {
                         Add Training
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-screen overflow-y-auto">
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Create New Training Course</DialogTitle>
                       </DialogHeader>
                       
-                      <div className="space-y-6">
+                      <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="title">Training Title *</Label>
@@ -317,6 +347,78 @@ export default function TrainingCatalog() {
                           />
                         </div>
 
+                        {/* External Training Specific Fields */}
+                        {newTraining.type === 'external' && (
+                          <>
+                            <div className="border-t pt-6">
+                              <h4 className="text-lg font-medium text-gray-900 mb-4">External Training Details</h4>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor="providerName">Provider/Institute Name *</Label>
+                                  <Input
+                                    id="providerName"
+                                    value={newTraining.providerName}
+                                    onChange={(e) => setNewTraining({ ...newTraining, providerName: e.target.value })}
+                                    placeholder="e.g., Safety Training Institute"
+                                    data-testid="input-provider-name"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="location">Location</Label>
+                                  <Input
+                                    id="location"
+                                    value={newTraining.location}
+                                    onChange={(e) => setNewTraining({ ...newTraining, location: e.target.value })}
+                                    placeholder="e.g., Chicago, IL or Online"
+                                    data-testid="input-location"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                  <Label htmlFor="cost">Cost ($)</Label>
+                                  <Input
+                                    id="cost"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={newTraining.cost}
+                                    onChange={(e) => setNewTraining({ ...newTraining, cost: e.target.value })}
+                                    placeholder="500.00"
+                                    data-testid="input-cost"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="providerContact">Provider Contact</Label>
+                                  <Input
+                                    id="providerContact"
+                                    value={newTraining.providerContact}
+                                    onChange={(e) => setNewTraining({ ...newTraining, providerContact: e.target.value })}
+                                    placeholder="contact@provider.com or (555) 123-4567"
+                                    data-testid="input-provider-contact"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div className="mt-4">
+                                <Label htmlFor="externalUrl">Provider Website/Course URL</Label>
+                                <Input
+                                  id="externalUrl"
+                                  type="url"
+                                  value={newTraining.externalUrl}
+                                  onChange={(e) => setNewTraining({ ...newTraining, externalUrl: e.target.value })}
+                                  placeholder="https://provider.com/course-page"
+                                  data-testid="input-external-url"
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
+
                         <div className="flex justify-end space-x-3 pt-6">
                           <Button 
                             type="button" 
@@ -351,7 +453,7 @@ export default function TrainingCatalog() {
               <div className="animate-pulse text-gray-500">Loading training catalog...</div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredTraining.length === 0 ? (
                 <div className="col-span-full text-center py-12 text-gray-500" data-testid="text-no-training">
                   {searchTerm || filterCategory ? "No training courses match your filters" : "No training courses available"}
@@ -419,6 +521,31 @@ export default function TrainingCatalog() {
                             <Users className="h-4 w-4 mr-2" />
                             <span data-testid={`text-standard-${training.id}`}>{training.complianceStandard}</span>
                           </div>
+                        )}
+
+                        {/* External training specific info */}
+                        {training.type === 'external' && (
+                          <>
+                            {training.providerName && (
+                              <div className="flex items-center text-sm text-gray-500">
+                                <BookOpen className="h-4 w-4 mr-2" />
+                                <span data-testid={`text-provider-${training.id}`}>{training.providerName}</span>
+                              </div>
+                            )}
+                            {training.location && (
+                              <div className="flex items-center text-sm text-gray-500">
+                                <Users className="h-4 w-4 mr-2" />
+                                <span data-testid={`text-location-${training.id}`}>{training.location}</span>
+                              </div>
+                            )}
+                            {training.cost && (
+                              <div className="flex items-center text-sm text-green-600 font-medium">
+                                <span data-testid={`text-cost-${training.id}`}>
+                                  ${(training.cost / 100).toFixed(2)} {training.currency || 'USD'}
+                                </span>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                       
